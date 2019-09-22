@@ -142,7 +142,7 @@ function scrollama() {
   var offsetMargin = 0;
   var viewH = 0;
   var pageH = 0;
-  var previousScrolledPx = 0;
+  var previousPageYOffset = 0;
   var progressThreshold = 0;
 
   var isReady = false;
@@ -202,11 +202,11 @@ function scrollama() {
   }
 
   function updateDirection() {
-    var scrolledPx = containerEl ? containerEl.scrollTop : window.pageYOffset;
+    var pageYOffset = window.pageYOffset;
 
-    if (scrolledPx > previousScrolledPx) { direction = 'down'; }
-    else if (scrolledPx < previousScrolledPx) { direction = 'up'; }
-    previousScrolledPx = scrolledPx;
+    if (pageYOffset > previousPageYOffset) { direction = 'down'; }
+    else if (pageYOffset < previousPageYOffset) { direction = 'up'; }
+    previousPageYOffset = pageYOffset;
   }
 
   function disconnectObserver(name) {
@@ -229,13 +229,19 @@ function scrollama() {
   }
 
   function handleEnable(enable) {
-    if (enable && !isEnabled) {
-      if (isReady) { updateIO(); }
-      isEnabled = true;
-      return true;
+    if (enable && !isEnabled) { // enable a disabled scroller
+      if (isReady) { // enable a ready scroller
+        updateIO();
+      } else { // can't enable an unready scroller
+        console.error('scrollama error: enable() called before scroller was ready');
+        isEnabled = false;
+        return; // all is not well, don't set the requested state
+      }
     }
-    OBSERVER_NAMES.forEach(disconnectObserver);
-    isEnabled = false;
+    if (!enable && isEnabled) { // disable an enabled scroller
+      OBSERVER_NAMES.forEach(disconnectObserver);
+    }
+    isEnabled = enable; // all is well, set requested state
   }
 
   function createThreshold(height) {
@@ -511,7 +517,7 @@ function scrollama() {
 
   // look below for intersection
   function updateStepBelowIO() {
-    io.stepAbove = stepEl.map(function (el, i) {
+    io.stepBelow = stepEl.map(function (el, i) {
       var marginTop = -offsetMargin;
       var marginBottom = offsetMargin - viewH + stepOffsetHeight[i];
       var rootMargin = marginTop + "px 0px " + marginBottom + "px 0px";
